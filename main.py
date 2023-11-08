@@ -18,6 +18,7 @@ class TelegramBot:
         self.project_id = config["project_id"]
         openai.api_key = self.openai_api_key
         self.application = Application.builder().token(self.token).build()
+        self.authorized_chat_ids = config["authorized_chat_ids"]
         logger.info("TelegramBot initialized with provided configuration.")
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -35,7 +36,16 @@ class TelegramBot:
             await update.message.reply_text("Hello! Type something you want to search between available information "
                                             "to start")
 
+    async def is_authorized(self, chat_id):
+        return chat_id in self.authorized_chat_ids
+
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        chat_id = update.effective_chat.id
+        if not await self.is_authorized(chat_id):
+            await update.message.reply_text("You are not authorized to use this bot. "
+                                            "Contact @mrodri_1 for more information.")
+            return
+
         message_text = update.message.text
         logger.info(f"Received message from user {update.effective_user.id}: {message_text}")
         # Process any text that is not a command
